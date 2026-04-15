@@ -86,6 +86,7 @@
 
       <a-entity mindar-image-target="targetIndex: 0">
         <a-plane
+          id="debugPlane"
           position="0 0 0"
           rotation="0 0 0"
           width="1"
@@ -126,6 +127,7 @@
       const target = document.querySelector('[mindar-image-target="targetIndex: 0"]');
       const avatar = document.querySelector("#avatar");
       const debugBox = document.querySelector("#debugBox");
+      const debugPlane = document.querySelector("#debugPlane");
       const ua = navigator.userAgent || "";
       const TARGET_WIDTH = 1.0;
       const TARGET_HEIGHT = 1.0;
@@ -205,6 +207,22 @@
         run();
       };
 
+      const forceOpaqueMaterials = () => {
+        const meshRoot = avatar.getObject3D("mesh");
+        if (!meshRoot) return;
+        meshRoot.traverse((node) => {
+          if (!node.isMesh || !node.material) return;
+          const materials = Array.isArray(node.material) ? node.material : [node.material];
+          materials.forEach((mat) => {
+            mat.transparent = false;
+            mat.opacity = 1.0;
+            mat.alphaTest = 0;
+            mat.depthWrite = true;
+            mat.needsUpdate = true;
+          });
+        });
+      };
+
       startBtn.addEventListener("click", async () => {
         try {
           if (!window.isSecureContext) {
@@ -253,10 +271,12 @@
       });
 
       avatar.addEventListener("model-loaded", () => {
+        forceOpaqueMaterials();
         const fitted = fitModelToTarget();
         if (fitted) {
           showStatus("3D model loaded and auto-fit to image.");
           if (debugBox) debugBox.setAttribute("visible", "false");
+          if (debugPlane) debugPlane.setAttribute("visible", "false");
         } else {
           fitModelWithRetry();
           showStatus("3D model loaded. Applying fit...");
