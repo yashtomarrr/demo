@@ -117,17 +117,38 @@
         video.muted = true;
       };
 
+      const getFacingModeConstraints = () => ({
+        video: { facingMode: { ideal: "environment" } },
+        audio: false
+      });
+
+      const requestCameraPermission = async () => {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          throw new Error("Camera API not supported in this browser.");
+        }
+        const stream = await navigator.mediaDevices.getUserMedia(getFacingModeConstraints());
+        stream.getTracks().forEach((track) => track.stop());
+      };
+
       startBtn.addEventListener("click", async () => {
         try {
           if (!window.isSecureContext) {
             showStatus("Mobile camera requires HTTPS (or localhost).");
             return;
           }
+          await requestCameraPermission();
           await scene.systems["mindar-image-system"].start();
           patchVideoForIOS();
           startWrap.style.display = "none";
         } catch (err) {
-          showStatus("Camera start failed. Allow camera permission and use HTTPS.");
+          const msg = String(err && err.message ? err.message : err);
+          if (msg.includes("Permission denied") || msg.includes("NotAllowedError")) {
+            showStatus("Camera permission denied. Remove Android overlays/popups, then allow camera.");
+          } else if (msg.includes("NotFoundError")) {
+            showStatus("No camera found on this device/browser.");
+          } else {
+            showStatus("Camera start failed. Use HTTPS, disable overlays, and allow camera permission.");
+          }
           console.error(err);
         }
       });
