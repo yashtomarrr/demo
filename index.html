@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>MindAR Image Tracking</title>
+    <title>WEXR AR Viewer</title>
     <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
     <style>
@@ -31,16 +31,15 @@
 
       .brand {
         position: fixed;
-        z-index: 45;
-        top: 16px;
+        z-index: 15;
+        top: 12px;
         right: 12px;
         padding: 6px 10px;
         border-radius: 8px;
-        background: rgba(0, 0, 0, 0.55);
+        background: rgba(0, 0, 0, 0.5);
         color: #9fe8ff;
         font-size: 12px;
         font-weight: 700;
-        letter-spacing: 0.4px;
       }
 
       .start-wrap {
@@ -50,7 +49,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        background: rgba(0, 0, 0, 0.6);
+        background: rgba(0, 0, 0, 0.55);
       }
 
       .start-btn {
@@ -64,46 +63,32 @@
 
       .status {
         position: fixed;
-        z-index: 30;
-        top: 16px;
+        z-index: 25;
+        top: 14px;
         left: 50%;
         transform: translateX(-50%);
         padding: 8px 12px;
         border-radius: 8px;
-        background: rgba(180, 0, 0, 0.8);
+        background: rgba(180, 0, 0, 0.85);
         color: #fff;
         font-size: 13px;
         display: none;
-      }
-
-      .debuglog {
-        position: fixed;
-        z-index: 40;
-        left: 12px;
-        right: 12px;
-        top: 60px;
-        padding: 8px 10px;
-        border-radius: 8px;
-        background: rgba(0, 0, 0, 0.6);
-        color: #d9f7ff;
-        font-size: 12px;
-        line-height: 1.35;
-        white-space: pre-line;
       }
     </style>
   </head>
   <body>
     <div id="status" class="status"></div>
     <div class="brand">Made by WEXR</div>
-    <div id="debugLog" class="debuglog">Debug:\nWaiting to start...</div>
+
     <div id="startWrap" class="start-wrap">
       <button id="startBtn" class="start-btn">Start AR Camera</button>
     </div>
+
     <div class="hint">Point your camera at the target image</div>
 
     <a-scene
       id="scene"
-      mindar-image="imageTargetSrc: ./targets.mind?v=5; autoStart: false; uiLoading: yes; uiError: yes; uiScanning: yes;"
+      mindar-image="imageTargetSrc: ./targets.mind?v=6; autoStart: false; uiLoading: yes; uiError: yes; uiScanning: yes;"
       color-space="sRGB"
       renderer="colorManagement: true, physicallyCorrectLights"
       vr-mode-ui="enabled: false"
@@ -112,37 +97,7 @@
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
       <a-entity id="targetEntity" mindar-image-target="targetIndex: 0">
-        <a-plane
-          id="debugPlane"
-          position="0 0 0"
-          rotation="0 0 0"
-          width="1"
-          height="1"
-          color="#00ffff"
-          opacity="0.18"
-        ></a-plane>
-
         <a-entity id="modelAnchor" position="0 0 0.02" rotation="0 0 0">
-          <a-box
-            id="debugBox"
-            position="0 0 0"
-            depth="0.08"
-            height="0.08"
-            width="0.08"
-            color="#ff2d55"
-            visible="false"
-          ></a-box>
-
-          <a-box
-            id="fallbackModel"
-            position="0 0 0.08"
-            depth="0.22"
-            height="0.22"
-            width="0.22"
-            color="#22cc88"
-            visible="false"
-          ></a-box>
-
           <a-entity
             id="avatar"
             gltf-model="url(./car.glb)"
@@ -163,14 +118,10 @@
       const startBtn = document.querySelector("#startBtn");
       const startWrap = document.querySelector("#startWrap");
       const status = document.querySelector("#status");
-      const debugLog = document.querySelector("#debugLog");
       const target = document.querySelector("#targetEntity");
       const avatar = document.querySelector("#avatar");
-      const debugBox = document.querySelector("#debugBox");
-      const debugPlane = document.querySelector("#debugPlane");
-      const fallbackModel = document.querySelector("#fallbackModel");
       const ua = navigator.userAgent || "";
-      const MODEL_URL = `./car.glb?v=${Date.now()}`;
+      const modelUrl = `./car.glb?v=${Date.now()}`;
 
       const TARGET_WIDTH = 1.0;
       const TARGET_HEIGHT = 1.0;
@@ -178,25 +129,18 @@
       const MIN_SCALE = 0.2;
       const MAX_SCALE = 20.0;
 
-      let isTargetVisible = false;
-      let isModelReady = false;
-      let modelLoadWatchdog = null;
-
-      const showStatus = (message) => {
+      const showStatus = (message, timeout = 0) => {
         status.textContent = message;
         status.style.display = "block";
+        if (timeout > 0) {
+          window.setTimeout(() => {
+            status.style.display = "none";
+          }, timeout);
+        }
       };
 
-      const hideStatusSoon = () => {
-        window.setTimeout(() => {
-          status.style.display = "none";
-        }, 1800);
-      };
-
-      const appendLog = (message) => {
-        const now = new Date().toLocaleTimeString();
-        const prev = debugLog.textContent.split("\n").slice(0, 10).join("\n");
-        debugLog.textContent = `Debug:\n[${now}] ${message}\n${prev}`;
+      const hideStatus = () => {
+        status.style.display = "none";
       };
 
       const patchVideoForIOS = () => {
@@ -223,10 +167,6 @@
         stream.getTracks().forEach((track) => track.stop());
       };
 
-      // Force fresh GLB fetch each page load to avoid stale CDN/browser cache.
-      avatar.setAttribute("gltf-model", `url(${MODEL_URL})`);
-      appendLog(`Using model: ${MODEL_URL}`);
-
       const isInAppBrowser = () => /WhatsApp|FBAN|FBAV|Instagram|Line|wv/i.test(ua);
 
       const forceOpaqueMaterials = () => {
@@ -234,8 +174,8 @@
         if (!meshRoot) return;
         meshRoot.traverse((node) => {
           if (!node.isMesh || !node.material) return;
-          const mats = Array.isArray(node.material) ? node.material : [node.material];
-          mats.forEach((mat) => {
+          const materials = Array.isArray(node.material) ? node.material : [node.material];
+          materials.forEach((mat) => {
             mat.transparent = false;
             mat.opacity = 1;
             mat.depthWrite = true;
@@ -262,12 +202,13 @@
         fitScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, fitScale));
 
         avatar.object3D.scale.setScalar(fitScale);
-        // Recenter model by bounds so pivot issues in imported GLB don't hide it.
-        const recenteredBox = new THREE.Box3().setFromObject(meshRoot);
+
+        const centeredBox = new THREE.Box3().setFromObject(meshRoot);
         const center = new THREE.Vector3();
-        recenteredBox.getCenter(center);
-        const zLift = 0.02 - recenteredBox.min.z;
+        centeredBox.getCenter(center);
+        const zLift = 0.02 - centeredBox.min.z;
         avatar.object3D.position.set(-center.x, -center.y, zLift);
+
         avatar.object3D.visible = true;
         return true;
       };
@@ -283,93 +224,47 @@
         run();
       };
 
+      avatar.setAttribute("gltf-model", `url(${modelUrl})`);
+
       startBtn.addEventListener("click", async () => {
         try {
           if (!window.isSecureContext) {
             showStatus("Mobile camera requires HTTPS (or localhost).");
-            appendLog("Blocked: insecure context");
             return;
           }
           if (isInAppBrowser()) {
             showStatus("Open this link in Safari/Chrome. In-app browsers may block camera.");
-            appendLog("Blocked: in-app browser");
             return;
           }
 
           await requestCameraPermission();
           await scene.systems["mindar-image-system"].start();
           patchVideoForIOS();
-          appendLog("Loading GLB...");
-          modelLoadWatchdog = window.setTimeout(() => {
-            if (!isModelReady) {
-              appendLog("GLB timeout: showing fallback cube");
-              showStatus("Model load delayed. Showing fallback object.");
-            }
-          }, 5000);
 
           startWrap.style.display = "none";
-          showStatus("Camera started. Scan the exact target image.");
-          appendLog("Camera started");
-          hideStatusSoon();
-        } catch (err) {
-          const msg = String(err && err.message ? err.message : err);
-          showStatus("Camera start failed. Open in Safari/Chrome, use HTTPS, and allow camera.");
-          appendLog(`Camera error: ${msg}`);
-          console.error(err);
+          showStatus("Camera started. Scan the target image.", 1400);
+        } catch {
+          showStatus("Camera start failed. Allow camera permission and retry.");
         }
       });
 
       target.addEventListener("targetFound", () => {
-        isTargetVisible = true;
-        appendLog("Target found");
-        showStatus("Target found");
-
-        if (isModelReady) {
-          avatar.setAttribute("visible", "true");
-          fallbackModel.setAttribute("visible", "true");
-          debugBox.setAttribute("visible", "false");
-          fitModelWithRetry();
-        } else {
-          fallbackModel.setAttribute("visible", "true");
-          debugBox.setAttribute("visible", "true");
-          appendLog("GLB not ready yet, showing fallback cube");
-        }
+        avatar.setAttribute("visible", "true");
+        fitModelWithRetry();
       });
 
       target.addEventListener("targetLost", () => {
-        isTargetVisible = false;
-        appendLog("Target lost");
-        showStatus("Target lost. Keep full image in frame.");
         avatar.setAttribute("visible", "false");
-        fallbackModel.setAttribute("visible", "false");
-        debugBox.setAttribute("visible", "false");
       });
 
       avatar.addEventListener("model-loaded", () => {
-        isModelReady = true;
-        if (modelLoadWatchdog) window.clearTimeout(modelLoadWatchdog);
-        appendLog("GLB model-loaded");
-
         forceOpaqueMaterials();
         fitModelWithRetry();
-
-        if (isTargetVisible) {
-          avatar.setAttribute("visible", "true");
-          fallbackModel.setAttribute("visible", "false");
-          debugBox.setAttribute("visible", "false");
-        }
-
-        debugPlane.setAttribute("opacity", "0.08");
-        showStatus("3D model loaded");
-        hideStatusSoon();
+        hideStatus();
       });
 
       avatar.addEventListener("model-error", () => {
-        isModelReady = false;
-        appendLog("GLB model-error (check car.glb URL)");
         avatar.setAttribute("visible", "false");
-        if (isTargetVisible) fallbackModel.setAttribute("visible", "true");
-        debugBox.setAttribute("visible", "true");
         showStatus("Model failed to load. Verify /car.glb is accessible.");
       });
     </script>
