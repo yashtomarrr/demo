@@ -85,13 +85,31 @@
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
       <a-entity mindar-image-target="targetIndex: 0">
-        <a-entity id="modelAnchor" position="0 0.12 0.02" rotation="0 0 0">
+        <a-plane
+          position="0 0 0"
+          rotation="0 0 0"
+          width="1"
+          height="1"
+          color="#00ffff"
+          opacity="0.12"
+        ></a-plane>
+
+        <a-entity id="modelAnchor" position="0 0.2 0.03" rotation="0 0 0">
+          <a-box
+            id="debugBox"
+            position="0 -0.15 0"
+            depth="0.08"
+            height="0.08"
+            width="0.08"
+            color="#ff2d55"
+          ></a-box>
+
           <a-entity
             id="avatar"
             gltf-model="#avatarModel"
             position="0 0 0"
             rotation="0 0 0"
-            scale="0.12 0.12 0.12"
+            scale="0.35 0.35 0.35"
           ></a-entity>
         </a-entity>
       </a-entity>
@@ -105,11 +123,19 @@
       const startBtn = document.querySelector("#startBtn");
       const startWrap = document.querySelector("#startWrap");
       const status = document.querySelector("#status");
+      const target = document.querySelector('[mindar-image-target="targetIndex: 0"]');
+      const avatar = document.querySelector("#avatar");
       const ua = navigator.userAgent || "";
 
       const showStatus = (message) => {
         status.textContent = message;
         status.style.display = "block";
+      };
+
+      const hideStatusSoon = () => {
+        window.setTimeout(() => {
+          status.style.display = "none";
+        }, 1800);
       };
 
       const patchVideoForIOS = () => {
@@ -131,7 +157,6 @@
             audio: false
           });
         } catch (firstErr) {
-          // Fallback for browsers/devices that reject facingMode constraints.
           stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
         }
         stream.getTracks().forEach((track) => track.stop());
@@ -151,13 +176,18 @@
             showStatus("Open this link in Safari/Chrome. In-app browsers may block camera.");
             return;
           }
+
           await requestCameraPermission();
           await scene.systems["mindar-image-system"].start();
           patchVideoForIOS();
+
           startWrap.style.display = "none";
+          showStatus("Camera started. Scan the exact target image.");
+          hideStatusSoon();
         } catch (err) {
           const msg = String(err && err.message ? err.message : err);
           const errName = err && err.name ? String(err.name) : "";
+
           if (msg.includes("Permission denied") || msg.includes("NotAllowedError")) {
             showStatus("Camera permission denied. Remove overlays, then allow camera in browser settings.");
           } else if (errName === "NotAllowedError") {
@@ -171,6 +201,24 @@
           }
           console.error(err);
         }
+      });
+
+      target.addEventListener("targetFound", () => {
+        showStatus("Target found.");
+        hideStatusSoon();
+      });
+
+      target.addEventListener("targetLost", () => {
+        showStatus("Target lost. Keep full image in frame.");
+      });
+
+      avatar.addEventListener("model-loaded", () => {
+        showStatus("3D model loaded.");
+        hideStatusSoon();
+      });
+
+      avatar.addEventListener("model-error", () => {
+        showStatus("Model failed to load. Check model.glb path on deployed host.");
       });
     </script>
   </body>
