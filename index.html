@@ -253,11 +253,16 @@
         box.getSize(size);
         if (size.x <= 0 || size.y <= 0 || size.z <= 0) return false;
 
-        let fitScale = Math.min((TARGET_WIDTH * COVERAGE) / size.x, (TARGET_HEIGHT * COVERAGE) / size.y);
+        let fitScale = Math.min((TARGET_WIDTH * COVERAGE) / size.x, (TARGET_HEIGHT * COVERAGE) / size.z);
         fitScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, fitScale));
 
         avatar.object3D.scale.setScalar(fitScale);
-        avatar.object3D.position.set(0, 0, 0.08);
+        // Recenter model by bounds so pivot issues in imported GLB don't hide it.
+        const recenteredBox = new THREE.Box3().setFromObject(meshRoot);
+        const center = new THREE.Vector3();
+        recenteredBox.getCenter(center);
+        const zLift = 0.02 - recenteredBox.min.z;
+        avatar.object3D.position.set(-center.x, -center.y, zLift);
         avatar.object3D.visible = true;
         return true;
       };
@@ -316,7 +321,7 @@
 
         if (isModelReady) {
           avatar.setAttribute("visible", "true");
-          fallbackModel.setAttribute("visible", "false");
+          fallbackModel.setAttribute("visible", "true");
           debugBox.setAttribute("visible", "false");
           fitModelWithRetry();
         } else {
