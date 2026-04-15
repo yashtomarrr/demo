@@ -145,7 +145,7 @@
 
           <a-entity
             id="avatar"
-            gltf-model="url(./car.glb?v=1)"
+            gltf-model="url(./car.glb)"
             position="0 0 0.08"
             rotation="0 0 0"
             scale="1 1 1"
@@ -170,6 +170,7 @@
       const debugPlane = document.querySelector("#debugPlane");
       const fallbackModel = document.querySelector("#fallbackModel");
       const ua = navigator.userAgent || "";
+      const MODEL_URL = `./car.glb?v=${Date.now()}`;
 
       const TARGET_WIDTH = 1.0;
       const TARGET_HEIGHT = 1.0;
@@ -221,6 +222,10 @@
         }
         stream.getTracks().forEach((track) => track.stop());
       };
+
+      // Force fresh GLB fetch each page load to avoid stale CDN/browser cache.
+      avatar.setAttribute("gltf-model", `url(${MODEL_URL})`);
+      appendLog(`Using model: ${MODEL_URL}`);
 
       const isInAppBrowser = () => /WhatsApp|FBAN|FBAV|Instagram|Line|wv/i.test(ua);
 
