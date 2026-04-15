@@ -107,7 +107,7 @@
           opacity="0.18"
         ></a-plane>
 
-        <a-entity id="modelAnchor" position="0 0 0.02" rotation="0 0 0">
+        <a-entity id="modelAnchor" position="0 0 -0.02" rotation="0 0 0">
           <a-box
             id="debugBox"
             position="0 0 0"
@@ -120,10 +120,10 @@
 
           <a-box
             id="fallbackModel"
-            position="0 0 0.04"
-            depth="0.12"
-            height="0.12"
-            width="0.12"
+            position="0 0 -0.08"
+            depth="0.22"
+            height="0.22"
+            width="0.22"
             color="#22cc88"
             visible="false"
           ></a-box>
@@ -131,7 +131,7 @@
           <a-entity
             id="avatar"
             gltf-model="url(./model.glb?v=5)"
-            position="0 0 0"
+            position="0 0 -0.08"
             rotation="0 0 0"
             scale="1 1 1"
             visible="false"
@@ -164,6 +164,7 @@
 
       let isTargetVisible = false;
       let isModelReady = false;
+      let modelLoadWatchdog = null;
 
       const showStatus = (message) => {
         status.textContent = message;
@@ -240,7 +241,7 @@
         fitScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, fitScale));
 
         avatar.object3D.scale.setScalar(fitScale);
-        avatar.object3D.position.set(0, 0, 0.03);
+        avatar.object3D.position.set(0, 0, -0.08);
         avatar.object3D.visible = true;
         return true;
       };
@@ -272,6 +273,13 @@
           await requestCameraPermission();
           await scene.systems["mindar-image-system"].start();
           patchVideoForIOS();
+          appendLog("Loading GLB...");
+          modelLoadWatchdog = window.setTimeout(() => {
+            if (!isModelReady) {
+              appendLog("GLB timeout: showing fallback cube");
+              showStatus("Model load delayed. Showing fallback object.");
+            }
+          }, 5000);
 
           startWrap.style.display = "none";
           showStatus("Camera started. Scan the exact target image.");
@@ -313,6 +321,7 @@
 
       avatar.addEventListener("model-loaded", () => {
         isModelReady = true;
+        if (modelLoadWatchdog) window.clearTimeout(modelLoadWatchdog);
         appendLog("GLB model-loaded");
 
         forceOpaqueMaterials();
