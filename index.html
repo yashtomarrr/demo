@@ -100,7 +100,7 @@
         <a-entity id="modelAnchor" position="0 0 0.02" rotation="0 0 0">
           <a-entity
             id="avatar"
-            gltf-model="url(./car.glb)"
+           gltf-model="url(./model.glb)"
             position="0 0 0.08"
             rotation="0 0 0"
             scale="1 1 1"
@@ -121,7 +121,7 @@
       const target = document.querySelector("#targetEntity");
       const avatar = document.querySelector("#avatar");
       const ua = navigator.userAgent || "";
-      const modelUrl = `./car.glb?v=${Date.now()}`;
+       const modelUrl = `./model.glb?v=${Date.now()}`;
 
       const TARGET_WIDTH = 1.0;
       const TARGET_HEIGHT = 1.0;
@@ -265,7 +265,7 @@
 
       avatar.addEventListener("model-error", () => {
         avatar.setAttribute("visible", "false");
-        showStatus("Model failed to load. Verify /car.glb is accessible.");
+        showStatus("Model failed to load. Verify /model.glb is accessible.");
       });
     </script>
   </body>
