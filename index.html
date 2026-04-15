@@ -88,7 +88,7 @@
 
     <a-scene
       id="scene"
-      mindar-image="imageTargetSrc: ./targets.mind?v=6; autoStart: false; uiLoading: yes; uiError: yes; uiScanning: yes; filterMinCF: 0.0001; filterBeta: 0.001; warmupTolerance: 5; missTolerance: 5;"
+     mindar-image="imageTargetSrc: ./targets.mind?v=6; autoStart: false; uiLoading: yes; uiError: yes; uiScanning: yes; filterMinCF: 0.001; filterBeta: 0.01; warmupTolerance: 8; missTolerance: 8;"
       color-space="sRGB"
       renderer="colorManagement: true, physicallyCorrectLights"
       vr-mode-ui="enabled: false"
@@ -102,7 +102,7 @@
             id="avatar"
             gltf-model="url(./model.glb)"
             position="0 0 0.12"
-            rotation="-90 0 0"
+             rotation="90 180 0"
             scale="0.35 0.35 0.35"
             visible="false"
           ></a-entity>
@@ -183,7 +183,7 @@
 
       const applyStableModelTransform = () => {
         avatar.setAttribute("position", "0 0 0.12");
-        avatar.setAttribute("rotation", "-90 0 0");
+          avatar.setAttribute("rotation", "90 180 0");
         avatar.setAttribute("scale", "0.35 0.35 0.35");
         avatar.object3D.visible = true;
       };
