@@ -61,10 +61,26 @@
         font-size: 13px;
         display: none;
       }
+
+      .debuglog {
+        position: fixed;
+        z-index: 40;
+        left: 12px;
+        right: 12px;
+        top: 60px;
+        padding: 8px 10px;
+        border-radius: 8px;
+        background: rgba(0, 0, 0, 0.6);
+        color: #d9f7ff;
+        font-size: 12px;
+        line-height: 1.35;
+        white-space: pre-line;
+      }
     </style>
   </head>
   <body>
     <div id="status" class="status"></div>
+    <div id="debugLog" class="debuglog">Debug:\nWaiting to start...</div>
     <div id="startWrap" class="start-wrap">
       <button id="startBtn" class="start-btn">Start AR Camera</button>
     </div>
@@ -72,18 +88,15 @@
 
     <a-scene
       id="scene"
-      mindar-image="imageTargetSrc: ./targets.mind?v=4; autoStart: false; uiLoading: yes; uiError: yes; uiScanning: yes;"
+      mindar-image="imageTargetSrc: ./targets.mind?v=5; autoStart: false; uiLoading: yes; uiError: yes; uiScanning: yes;"
       color-space="sRGB"
       renderer="colorManagement: true, physicallyCorrectLights"
       vr-mode-ui="enabled: false"
       device-orientation-permission-ui="enabled: false"
     >
-      <a-assets>
-      </a-assets>
-
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-      <a-entity mindar-image-target="targetIndex: 0">
+      <a-entity id="targetEntity" mindar-image-target="targetIndex: 0">
         <a-plane
           id="debugPlane"
           position="0 0 0"
@@ -91,25 +104,37 @@
           width="1"
           height="1"
           color="#00ffff"
-          opacity="0.12"
+          opacity="0.18"
         ></a-plane>
 
-        <a-entity id="modelAnchor" position="0 0.2 0.03" rotation="0 0 0">
+        <a-entity id="modelAnchor" position="0 0 0.02" rotation="0 0 0">
           <a-box
             id="debugBox"
-            position="0 -0.15 0"
+            position="0 0 0"
             depth="0.08"
             height="0.08"
             width="0.08"
             color="#ff2d55"
+            visible="false"
+          ></a-box>
+
+          <a-box
+            id="fallbackModel"
+            position="0 0 0.04"
+            depth="0.12"
+            height="0.12"
+            width="0.12"
+            color="#22cc88"
+            visible="false"
           ></a-box>
 
           <a-entity
             id="avatar"
-            gltf-model="url(./model.glb?v=3)"
+            gltf-model="url(./model.glb?v=5)"
             position="0 0 0"
             rotation="0 0 0"
             scale="1 1 1"
+            visible="false"
           ></a-entity>
         </a-entity>
       </a-entity>
@@ -123,17 +148,22 @@
       const startBtn = document.querySelector("#startBtn");
       const startWrap = document.querySelector("#startWrap");
       const status = document.querySelector("#status");
-      const target = document.querySelector('[mindar-image-target="targetIndex: 0"]');
+      const debugLog = document.querySelector("#debugLog");
+      const target = document.querySelector("#targetEntity");
       const avatar = document.querySelector("#avatar");
       const debugBox = document.querySelector("#debugBox");
       const debugPlane = document.querySelector("#debugPlane");
+      const fallbackModel = document.querySelector("#fallbackModel");
       const ua = navigator.userAgent || "";
+
       const TARGET_WIDTH = 1.0;
       const TARGET_HEIGHT = 1.0;
       const COVERAGE = 0.95;
       const MIN_SCALE = 0.05;
       const MAX_SCALE = 3.0;
+
       let isTargetVisible = false;
+      let isModelReady = false;
 
       const showStatus = (message) => {
         status.textContent = message;
@@ -144,6 +174,12 @@
         window.setTimeout(() => {
           status.style.display = "none";
         }, 1800);
+      };
+
+      const appendLog = (message) => {
+        const now = new Date().toLocaleTimeString();
+        const prev = debugLog.textContent.split("\n").slice(0, 10).join("\n");
+        debugLog.textContent = `Debug:\n[${now}] ${message}\n${prev}`;
       };
 
       const patchVideoForIOS = () => {
@@ -164,14 +200,29 @@
             video: { facingMode: { ideal: "environment" } },
             audio: false
           });
-        } catch (firstErr) {
+        } catch {
           stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
         }
         stream.getTracks().forEach((track) => track.stop());
       };
 
-      const isInAppBrowser = () => {
-        return /WhatsApp|FBAN|FBAV|Instagram|Line|wv/i.test(ua);
+      const isInAppBrowser = () => /WhatsApp|FBAN|FBAV|Instagram|Line|wv/i.test(ua);
+
+      const forceOpaqueMaterials = () => {
+        const meshRoot = avatar.getObject3D("mesh");
+        if (!meshRoot) return;
+        meshRoot.traverse((node) => {
+          if (!node.isMesh || !node.material) return;
+          const mats = Array.isArray(node.material) ? node.material : [node.material];
+          mats.forEach((mat) => {
+            mat.transparent = false;
+            mat.opacity = 1;
+            mat.depthWrite = true;
+            mat.alphaTest = 0;
+            mat.needsUpdate = true;
+          });
+          node.frustumCulled = false;
+        });
       };
 
       const fitModelToTarget = () => {
@@ -187,12 +238,14 @@
 
         let fitScale = Math.min((TARGET_WIDTH * COVERAGE) / size.x, (TARGET_HEIGHT * COVERAGE) / size.y);
         fitScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, fitScale));
+
         avatar.object3D.scale.setScalar(fitScale);
         avatar.object3D.position.set(0, 0, 0.03);
+        avatar.object3D.visible = true;
         return true;
       };
 
-      const fitModelWithRetry = (attempts = 20) => {
+      const fitModelWithRetry = (attempts = 30) => {
         let remaining = attempts;
         const run = () => {
           const ok = fitModelToTarget();
@@ -203,30 +256,16 @@
         run();
       };
 
-      const forceOpaqueMaterials = () => {
-        const meshRoot = avatar.getObject3D("mesh");
-        if (!meshRoot) return;
-        meshRoot.traverse((node) => {
-          if (!node.isMesh || !node.material) return;
-          const materials = Array.isArray(node.material) ? node.material : [node.material];
-          materials.forEach((mat) => {
-            mat.transparent = false;
-            mat.opacity = 1.0;
-            mat.alphaTest = 0;
-            mat.depthWrite = true;
-            mat.needsUpdate = true;
-          });
-        });
-      };
-
       startBtn.addEventListener("click", async () => {
         try {
           if (!window.isSecureContext) {
             showStatus("Mobile camera requires HTTPS (or localhost).");
+            appendLog("Blocked: insecure context");
             return;
           }
           if (isInAppBrowser()) {
             showStatus("Open this link in Safari/Chrome. In-app browsers may block camera.");
+            appendLog("Blocked: in-app browser");
             return;
           }
 
@@ -236,58 +275,67 @@
 
           startWrap.style.display = "none";
           showStatus("Camera started. Scan the exact target image.");
+          appendLog("Camera started");
           hideStatusSoon();
         } catch (err) {
           const msg = String(err && err.message ? err.message : err);
-          const errName = err && err.name ? String(err.name) : "";
-
-          if (msg.includes("Permission denied") || msg.includes("NotAllowedError")) {
-            showStatus("Camera permission denied. Remove overlays, then allow camera in browser settings.");
-          } else if (errName === "NotAllowedError") {
-            showStatus("Camera blocked by browser. Open link in Safari/Chrome and allow camera.");
-          } else if (errName === "OverconstrainedError") {
-            showStatus("Camera constraint failed. Retry once, then use latest Chrome/Safari.");
-          } else if (msg.includes("NotFoundError")) {
-            showStatus("No camera found on this device/browser.");
-          } else {
-            showStatus("Camera start failed. Open in Safari/Chrome, use HTTPS, and allow camera.");
-          }
+          showStatus("Camera start failed. Open in Safari/Chrome, use HTTPS, and allow camera.");
+          appendLog(`Camera error: ${msg}`);
           console.error(err);
         }
       });
 
       target.addEventListener("targetFound", () => {
         isTargetVisible = true;
-        fitModelWithRetry();
-        showStatus("Target found.");
-        if (debugBox) debugBox.setAttribute("visible", "true");
+        appendLog("Target found");
+        showStatus("Target found");
+
+        if (isModelReady) {
+          avatar.setAttribute("visible", "true");
+          fallbackModel.setAttribute("visible", "false");
+          debugBox.setAttribute("visible", "false");
+          fitModelWithRetry();
+        } else {
+          fallbackModel.setAttribute("visible", "true");
+          debugBox.setAttribute("visible", "true");
+          appendLog("GLB not ready yet, showing fallback cube");
+        }
       });
 
       target.addEventListener("targetLost", () => {
         isTargetVisible = false;
+        appendLog("Target lost");
         showStatus("Target lost. Keep full image in frame.");
-        if (debugBox) debugBox.setAttribute("visible", "false");
+        avatar.setAttribute("visible", "false");
+        fallbackModel.setAttribute("visible", "false");
+        debugBox.setAttribute("visible", "false");
       });
 
       avatar.addEventListener("model-loaded", () => {
+        isModelReady = true;
+        appendLog("GLB model-loaded");
+
         forceOpaqueMaterials();
-        const fitted = fitModelToTarget();
-        if (fitted) {
-          showStatus("3D model loaded and auto-fit to image.");
-          if (debugBox) debugBox.setAttribute("visible", "false");
-          if (debugPlane) debugPlane.setAttribute("visible", "false");
+        fitModelWithRetry();
+
+        if (isTargetVisible) {
           avatar.setAttribute("visible", "true");
-        } else {
-          fitModelWithRetry();
-          showStatus("3D model loaded. Applying fit...");
+          fallbackModel.setAttribute("visible", "false");
+          debugBox.setAttribute("visible", "false");
         }
+
+        debugPlane.setAttribute("opacity", "0.08");
+        showStatus("3D model loaded");
         hideStatusSoon();
       });
 
       avatar.addEventListener("model-error", () => {
+        isModelReady = false;
+        appendLog("GLB model-error (check model.glb URL)");
         avatar.setAttribute("visible", "false");
-        if (debugBox) debugBox.setAttribute("visible", "true");
-        showStatus("Model failed to load. Verify /model.glb is accessible on your deployed URL.");
+        if (isTargetVisible) fallbackModel.setAttribute("visible", "true");
+        debugBox.setAttribute("visible", "true");
+        showStatus("Model failed to load. Verify /model.glb is accessible.");
       });
     </script>
   </body>
