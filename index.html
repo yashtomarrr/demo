@@ -72,7 +72,7 @@
 
     <a-scene
       id="scene"
-      mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiLoading: yes; uiError: yes; uiScanning: yes;"
+      mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiLoading: yes; uiError: yes; uiScanning: yes; filterMinCF: 0.001; filterBeta: 0.01;"
       color-space="sRGB"
       renderer="colorManagement: true, physicallyCorrectLights"
       vr-mode-ui="enabled: false"
@@ -85,13 +85,15 @@
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
       <a-entity mindar-image-target="targetIndex: 0">
-        <a-entity
-          gltf-model="#avatarModel"
-          position="0 0 0"
-          rotation="0 0 0"
-          scale="0.2 0.2 0.2"
-          animation="property: rotation; to: 0 360 0; dur: 8000; easing: linear; loop: true"
-        ></a-entity>
+        <a-entity id="modelAnchor" position="0 0.12 0.02" rotation="0 0 0">
+          <a-entity
+            id="avatar"
+            gltf-model="#avatarModel"
+            position="0 0 0"
+            rotation="0 0 0"
+            scale="0.12 0.12 0.12"
+          ></a-entity>
+        </a-entity>
       </a-entity>
 
       <a-light type="ambient" intensity="1"></a-light>
@@ -118,16 +120,20 @@
         video.muted = true;
       };
 
-      const getFacingModeConstraints = () => ({
-        video: { facingMode: { ideal: "environment" } },
-        audio: false
-      });
-
       const requestCameraPermission = async () => {
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
           throw new Error("Camera API not supported in this browser.");
         }
-        const stream = await navigator.mediaDevices.getUserMedia(getFacingModeConstraints());
+        let stream;
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: "environment" } },
+            audio: false
+          });
+        } catch (firstErr) {
+          // Fallback for browsers/devices that reject facingMode constraints.
+          stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        }
         stream.getTracks().forEach((track) => track.stop());
       };
 
@@ -153,9 +159,11 @@
           const msg = String(err && err.message ? err.message : err);
           const errName = err && err.name ? String(err.name) : "";
           if (msg.includes("Permission denied") || msg.includes("NotAllowedError")) {
-            showStatus("Camera permission denied. Remove Android overlays/popups, then allow camera.");
+            showStatus("Camera permission denied. Remove overlays, then allow camera in browser settings.");
           } else if (errName === "NotAllowedError") {
             showStatus("Camera blocked by browser. Open link in Safari/Chrome and allow camera.");
+          } else if (errName === "OverconstrainedError") {
+            showStatus("Camera constraint failed. Retry once, then use latest Chrome/Safari.");
           } else if (msg.includes("NotFoundError")) {
             showStatus("No camera found on this device/browser.");
           } else {
