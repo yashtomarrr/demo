@@ -100,10 +100,10 @@
         <a-entity id="modelAnchor" position="0 0 0.02" rotation="0 0 0">
           <a-entity
             id="avatar"
-           gltf-model="url(./model.glb)"
-            position="0 0 0.08"
-            rotation="0 0 0"
-            scale="1 1 1"
+            gltf-model="url(./model.glb)"
+            position="0 0 0.12"
+            rotation="-90 0 0"
+            scale="0.35 0.35 0.35"
             visible="false"
           ></a-entity>
         </a-entity>
@@ -121,13 +121,7 @@
       const target = document.querySelector("#targetEntity");
       const avatar = document.querySelector("#avatar");
       const ua = navigator.userAgent || "";
-       const modelUrl = `./model.glb?v=${Date.now()}`;
-
-      const TARGET_WIDTH = 1.0;
-      const TARGET_HEIGHT = 1.0;
-      const COVERAGE = 0.95;
-      const MIN_SCALE = 0.2;
-      const MAX_SCALE = 20.0;
+      const modelUrl = `./model.glb?v=${Date.now()}`;
 
       const showStatus = (message, timeout = 0) => {
         status.textContent = message;
@@ -187,41 +181,11 @@
         });
       };
 
-      const fitModelToTarget = () => {
-        const meshRoot = avatar.getObject3D("mesh");
-        if (!meshRoot || !window.THREE) return false;
-
-        const box = new THREE.Box3().setFromObject(meshRoot);
-        if (box.isEmpty()) return false;
-
-        const size = new THREE.Vector3();
-        box.getSize(size);
-        if (size.x <= 0 || size.y <= 0 || size.z <= 0) return false;
-
-        let fitScale = Math.min((TARGET_WIDTH * COVERAGE) / size.x, (TARGET_HEIGHT * COVERAGE) / size.z);
-        fitScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, fitScale));
-
-        avatar.object3D.scale.setScalar(fitScale);
-
-        const centeredBox = new THREE.Box3().setFromObject(meshRoot);
-        const center = new THREE.Vector3();
-        centeredBox.getCenter(center);
-        const zLift = 0.02 - centeredBox.min.z;
-        avatar.object3D.position.set(-center.x, -center.y, zLift);
-
+      const applyStableModelTransform = () => {
+        avatar.setAttribute("position", "0 0 0.12");
+        avatar.setAttribute("rotation", "-90 0 0");
+        avatar.setAttribute("scale", "0.35 0.35 0.35");
         avatar.object3D.visible = true;
-        return true;
-      };
-
-      const fitModelWithRetry = (attempts = 30) => {
-        let remaining = attempts;
-        const run = () => {
-          const ok = fitModelToTarget();
-          if (ok) return;
-          remaining -= 1;
-          if (remaining > 0) window.requestAnimationFrame(run);
-        };
-        run();
       };
 
       avatar.setAttribute("gltf-model", `url(${modelUrl})`);
@@ -250,7 +214,7 @@
 
       target.addEventListener("targetFound", () => {
         avatar.setAttribute("visible", "true");
-        fitModelWithRetry();
+        applyStableModelTransform();
       });
 
       target.addEventListener("targetLost", () => {
@@ -259,7 +223,7 @@
 
       avatar.addEventListener("model-loaded", () => {
         forceOpaqueMaterials();
-        fitModelWithRetry();
+        applyStableModelTransform();
         hideStatus();
       });
 
