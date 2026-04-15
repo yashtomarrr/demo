@@ -107,7 +107,7 @@
           opacity="0.18"
         ></a-plane>
 
-        <a-entity id="modelAnchor" position="0 0 -0.02" rotation="0 0 0">
+        <a-entity id="modelAnchor" position="0 0 0.02" rotation="0 0 0">
           <a-box
             id="debugBox"
             position="0 0 0"
@@ -120,7 +120,7 @@
 
           <a-box
             id="fallbackModel"
-            position="0 0 -0.08"
+            position="0 0 0.08"
             depth="0.22"
             height="0.22"
             width="0.22"
@@ -131,7 +131,7 @@
           <a-entity
             id="avatar"
             gltf-model="url(./model.glb?v=5)"
-            position="0 0 -0.08"
+            position="0 0 0.08"
             rotation="0 0 0"
             scale="1 1 1"
             visible="false"
@@ -159,8 +159,8 @@
       const TARGET_WIDTH = 1.0;
       const TARGET_HEIGHT = 1.0;
       const COVERAGE = 0.95;
-      const MIN_SCALE = 0.05;
-      const MAX_SCALE = 3.0;
+      const MIN_SCALE = 0.2;
+      const MAX_SCALE = 20.0;
 
       let isTargetVisible = false;
       let isModelReady = false;
@@ -219,6 +219,7 @@
             mat.transparent = false;
             mat.opacity = 1;
             mat.depthWrite = true;
+            mat.depthTest = false;
             mat.alphaTest = 0;
             mat.needsUpdate = true;
           });
@@ -241,7 +242,7 @@
         fitScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, fitScale));
 
         avatar.object3D.scale.setScalar(fitScale);
-        avatar.object3D.position.set(0, 0, -0.08);
+        avatar.object3D.position.set(0, 0, 0.08);
         avatar.object3D.visible = true;
         return true;
       };
