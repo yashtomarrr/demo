@@ -103,6 +103,7 @@
       const startBtn = document.querySelector("#startBtn");
       const startWrap = document.querySelector("#startWrap");
       const status = document.querySelector("#status");
+      const ua = navigator.userAgent || "";
 
       const showStatus = (message) => {
         status.textContent = message;
@@ -130,10 +131,18 @@
         stream.getTracks().forEach((track) => track.stop());
       };
 
+      const isInAppBrowser = () => {
+        return /WhatsApp|FBAN|FBAV|Instagram|Line|wv/i.test(ua);
+      };
+
       startBtn.addEventListener("click", async () => {
         try {
           if (!window.isSecureContext) {
             showStatus("Mobile camera requires HTTPS (or localhost).");
+            return;
+          }
+          if (isInAppBrowser()) {
+            showStatus("Open this link in Safari/Chrome. In-app browsers may block camera.");
             return;
           }
           await requestCameraPermission();
@@ -142,12 +151,15 @@
           startWrap.style.display = "none";
         } catch (err) {
           const msg = String(err && err.message ? err.message : err);
+          const errName = err && err.name ? String(err.name) : "";
           if (msg.includes("Permission denied") || msg.includes("NotAllowedError")) {
             showStatus("Camera permission denied. Remove Android overlays/popups, then allow camera.");
+          } else if (errName === "NotAllowedError") {
+            showStatus("Camera blocked by browser. Open link in Safari/Chrome and allow camera.");
           } else if (msg.includes("NotFoundError")) {
             showStatus("No camera found on this device/browser.");
           } else {
-            showStatus("Camera start failed. Use HTTPS, disable overlays, and allow camera permission.");
+            showStatus("Camera start failed. Open in Safari/Chrome, use HTTPS, and allow camera.");
           }
           console.error(err);
         }
