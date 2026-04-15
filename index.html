@@ -125,6 +125,7 @@
       const status = document.querySelector("#status");
       const target = document.querySelector('[mindar-image-target="targetIndex: 0"]');
       const avatar = document.querySelector("#avatar");
+      const debugBox = document.querySelector("#debugBox");
       const ua = navigator.userAgent || "";
       const TARGET_WIDTH = 1.0;
       const TARGET_HEIGHT = 1.0;
@@ -178,7 +179,7 @@
 
         const size = new THREE.Vector3();
         box.getSize(size);
-        if (size.x <= 0 || size.y <= 0) return false;
+        if (size.x <= 0 || size.y <= 0 || size.z <= 0) return false;
 
         const fitScale = Math.min((TARGET_WIDTH * COVERAGE) / size.x, (TARGET_HEIGHT * COVERAGE) / size.y);
         avatar.object3D.scale.setScalar(fitScale);
@@ -186,8 +187,22 @@
         const scaledBox = new THREE.Box3().setFromObject(meshRoot);
         const center = new THREE.Vector3();
         scaledBox.getCenter(center);
-        avatar.object3D.position.set(-center.x, -center.y, 0);
+
+        // Keep model centered on target and lift it slightly above the marker plane.
+        const zLift = 0.01 - scaledBox.min.z;
+        avatar.object3D.position.set(-center.x, -center.y, zLift);
         return true;
+      };
+
+      const fitModelWithRetry = (attempts = 20) => {
+        let remaining = attempts;
+        const run = () => {
+          const ok = fitModelToTarget();
+          if (ok) return;
+          remaining -= 1;
+          if (remaining > 0) window.requestAnimationFrame(run);
+        };
+        run();
       };
 
       startBtn.addEventListener("click", async () => {
@@ -228,6 +243,7 @@
       });
 
       target.addEventListener("targetFound", () => {
+        fitModelWithRetry();
         showStatus("Target found.");
         hideStatusSoon();
       });
@@ -240,13 +256,16 @@
         const fitted = fitModelToTarget();
         if (fitted) {
           showStatus("3D model loaded and auto-fit to image.");
+          if (debugBox) debugBox.setAttribute("visible", "false");
         } else {
-          showStatus("3D model loaded.");
+          fitModelWithRetry();
+          showStatus("3D model loaded. Applying fit...");
         }
         hideStatusSoon();
       });
 
       avatar.addEventListener("model-error", () => {
+        if (debugBox) debugBox.setAttribute("visible", "true");
         showStatus("Model failed to load. Check model.glb path on deployed host.");
       });
     </script>
