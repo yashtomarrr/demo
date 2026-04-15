@@ -72,7 +72,7 @@
 
     <a-scene
       id="scene"
-      mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiLoading: yes; uiError: yes; uiScanning: yes; filterMinCF: 0.001; filterBeta: 0.01;"
+      mindar-image="imageTargetSrc: ./targets.mind?v=4; autoStart: false; uiLoading: yes; uiError: yes; uiScanning: yes;"
       color-space="sRGB"
       renderer="colorManagement: true, physicallyCorrectLights"
       vr-mode-ui="enabled: false"
@@ -133,6 +133,7 @@
       const COVERAGE = 0.95;
       const MIN_SCALE = 0.05;
       const MAX_SCALE = 3.0;
+      let isTargetVisible = false;
 
       const showStatus = (message) => {
         status.textContent = message;
@@ -256,13 +257,16 @@
       });
 
       target.addEventListener("targetFound", () => {
+        isTargetVisible = true;
         fitModelWithRetry();
         showStatus("Target found.");
-        hideStatusSoon();
+        if (debugBox) debugBox.setAttribute("visible", "true");
       });
 
       target.addEventListener("targetLost", () => {
+        isTargetVisible = false;
         showStatus("Target lost. Keep full image in frame.");
+        if (debugBox) debugBox.setAttribute("visible", "false");
       });
 
       avatar.addEventListener("model-loaded", () => {
