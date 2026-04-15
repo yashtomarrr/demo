@@ -29,6 +29,20 @@
         font-size: 14px;
       }
 
+      .brand {
+        position: fixed;
+        z-index: 45;
+        top: 16px;
+        right: 12px;
+        padding: 6px 10px;
+        border-radius: 8px;
+        background: rgba(0, 0, 0, 0.55);
+        color: #9fe8ff;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.4px;
+      }
+
       .start-wrap {
         position: fixed;
         z-index: 20;
@@ -80,6 +94,7 @@
   </head>
   <body>
     <div id="status" class="status"></div>
+    <div class="brand">Made by WEXR</div>
     <div id="debugLog" class="debuglog">Debug:\nWaiting to start...</div>
     <div id="startWrap" class="start-wrap">
       <button id="startBtn" class="start-btn">Start AR Camera</button>
@@ -130,7 +145,7 @@
 
           <a-entity
             id="avatar"
-            gltf-model="url(./model.glb?v=5)"
+            gltf-model="url(./car.glb?v=1)"
             position="0 0 0.08"
             rotation="0 0 0"
             scale="1 1 1"
@@ -341,11 +356,11 @@
 
       avatar.addEventListener("model-error", () => {
         isModelReady = false;
-        appendLog("GLB model-error (check model.glb URL)");
+        appendLog("GLB model-error (check car.glb URL)");
         avatar.setAttribute("visible", "false");
         if (isTargetVisible) fallbackModel.setAttribute("visible", "true");
         debugBox.setAttribute("visible", "true");
-        showStatus("Model failed to load. Verify /model.glb is accessible.");
+        showStatus("Model failed to load. Verify /car.glb is accessible.");
       });
     </script>
   </body>
