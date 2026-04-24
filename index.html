@@ -230,8 +230,20 @@
       const waitForCameraFeed = async (timeoutMs = 4000) => {
         const start = Date.now();
         while (Date.now() - start < timeoutMs) {
-          const video = document.querySelector("video");
-          if (video && video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0) {
+          const videos = Array.from(document.querySelectorAll("video"));
+          const cameraVideo = videos.find((v) => v.id !== "introVideo" && v.srcObject);
+          const hasActiveTrack =
+            cameraVideo &&
+            cameraVideo.srcObject &&
+            cameraVideo.srcObject.getVideoTracks &&
+            cameraVideo.srcObject.getVideoTracks().some((t) => t.readyState === "live");
+          if (
+            cameraVideo &&
+            hasActiveTrack &&
+            cameraVideo.readyState >= 2 &&
+            cameraVideo.videoWidth > 0 &&
+            cameraVideo.videoHeight > 0
+          ) {
             return true;
           }
           await new Promise((resolve) => setTimeout(resolve, 100));
