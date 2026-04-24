@@ -2,10 +2,13 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
     <title>WEXR Interactive AR Business Card</title>
+
     <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+
     <style>
       html,
       body {
@@ -20,7 +23,7 @@
       .overlay {
         position: fixed;
         inset: 0;
-        z-index: 20;
+        z-index: 30;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -42,9 +45,9 @@
         position: fixed;
         top: 12px;
         right: 12px;
-        z-index: 25;
+        z-index: 35;
         color: #9fe8ff;
-        background: rgba(0, 0, 0, 0.45);
+        background: rgba(0, 0, 0, 0.5);
         border-radius: 8px;
         padding: 6px 10px;
         font-size: 12px;
@@ -56,7 +59,7 @@
         left: 50%;
         bottom: 14px;
         transform: translateX(-50%);
-        z-index: 25;
+        z-index: 35;
         color: #fff;
         background: rgba(0, 0, 0, 0.6);
         border-radius: 8px;
@@ -69,28 +72,88 @@
         left: 50%;
         top: 14px;
         transform: translateX(-50%);
-        z-index: 25;
+        z-index: 35;
         color: #fff;
-        background: rgba(0, 0, 0, 0.7);
+        background: rgba(0, 0, 0, 0.75);
         border-radius: 8px;
         padding: 8px 12px;
         font-size: 13px;
         display: none;
+      }
+
+      #scan-overlay {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        background: transparent;
+        z-index: 20;
+      }
+
+      #scan-overlay.hidden {
+        display: none;
+      }
+
+      #scan-overlay .inner {
+        width: min(75vw, 75vh);
+        height: min(75vw, 75vh);
+        position: relative;
+        background:
+          linear-gradient(to right, #ffffff 8px, transparent 8px) 0 0,
+          linear-gradient(to right, #ffffff 8px, transparent 8px) 0 100%,
+          linear-gradient(to left, #ffffff 8px, transparent 8px) 100% 0,
+          linear-gradient(to left, #ffffff 8px, transparent 8px) 100% 100%,
+          linear-gradient(to bottom, #ffffff 8px, transparent 8px) 0 0,
+          linear-gradient(to bottom, #ffffff 8px, transparent 8px) 100% 0,
+          linear-gradient(to top, #ffffff 8px, transparent 8px) 0 100%,
+          linear-gradient(to top, #ffffff 8px, transparent 8px) 100% 100%;
+        background-repeat: no-repeat;
+        background-size: 34px 34px;
+      }
+
+      #scan-overlay .scanline {
+        position: absolute;
+        left: 0;
+        width: 100%;
+        height: 6px;
+        background: rgba(255, 255, 255, 0.9);
+        animation: scan-move 2s linear infinite;
+      }
+
+      @keyframes scan-move {
+        0%,
+        100% {
+          top: 0;
+        }
+        50% {
+          top: calc(100% - 6px);
+        }
       }
     </style>
   </head>
   <body>
     <div class="brand">Made by WEXR</div>
     <div id="status" class="status"></div>
-    <div id="hint" class="hint">Point camera at the business card target</div>
+    <div id="hint" class="hint">Point camera at the target card</div>
 
     <div id="startWrap" class="overlay">
       <button id="startBtn" class="start-btn">Start AR Business Card</button>
     </div>
 
+    <div id="scan-overlay" class="hidden">
+      <div class="inner">
+        <div class="scanline"></div>
+      </div>
+    </div>
+
     <a-scene
       id="scene"
-      mindar-image="imageTargetSrc: ./targets.mind?v=7; autoStart: false; uiLoading: yes; uiError: yes; uiScanning: yes; filterMinCF: 0.001; filterBeta: 0.01; warmupTolerance: 8; missTolerance: 8;"
+      mindar-image="imageTargetSrc: ./targets.mind?v=8; autoStart: false; showStats: false; uiScanning: #scan-overlay; uiLoading: yes; uiError: yes; filterMinCF: 0.001; filterBeta: 0.01; warmupTolerance: 8; missTolerance: 8;"
+      embedded
       color-space="sRGB"
       renderer="colorManagement: true, physicallyCorrectLights"
       vr-mode-ui="enabled: false"
@@ -98,7 +161,7 @@
     >
       <a-assets>
         <video
-          id="introVideo"
+          id="portfolio-video"
           src="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4"
           preload="auto"
           loop
@@ -107,106 +170,89 @@
           webkit-playsinline
           crossorigin="anonymous"
         ></video>
+        <a-asset-item id="avatarModel" src="./model.glb"></a-asset-item>
       </a-assets>
 
       <a-camera
         position="0 0 0"
         look-controls="enabled: false"
-        cursor="rayOrigin: mouse; fuse: false"
-        raycaster="objects: .clickable"
+        cursor="fuse: false; rayOrigin: mouse"
+        raycaster="far: 10000; objects: .clickable"
       ></a-camera>
 
-      <a-entity id="cardTarget" mindar-image-target="targetIndex: 0">
-        <a-plane position="0 0 0" width="1.05" height="0.62" color="#0b1a22" opacity="0.92"></a-plane>
+      <a-entity id="mytarget" mindar-image-target="targetIndex: 0" mytarget>
+        <a-plane color="#0f1f2c" opacity="0.94" position="0 0 0" height="0.58" width="1"></a-plane>
 
-        <a-text
-          value="WEXR IMMERSIVE PVT. LTD"
-          color="#9fe8ff"
-          align="center"
-          width="1.6"
-          position="0 0.26 0.01"
-        ></a-text>
+        <a-text value="WEXR IMMERSIVE PVT. LTD" color="#9fe8ff" align="center" width="1.6" position="0 0.24 0.01"></a-text>
 
-        <a-text
-          value="Interactive AR Business Card"
-          color="#d7f8ff"
-          align="center"
-          width="1.5"
-          position="0 0.21 0.01"
-        ></a-text>
+        <a-entity visible="false" id="portfolio-panel" position="0 0.02 0.01">
+          <a-text value="Portfolio" color="#ffffff" align="center" width="1.4" position="0 0.18 0.01"></a-text>
 
-        <a-plane
-          id="videoPanel"
-          position="-0.24 0.02 0.02"
-          width="0.48"
-          height="0.28"
-          material="shader: flat; src: #introVideo"
-        ></a-plane>
+          <a-entity id="portfolio-item0">
+            <a-video id="portfolio-video-view" webkit-playsinline playsinline width="0.76" height="0.42" position="0 0 0.01" src="#portfolio-video"></a-video>
+          </a-entity>
 
-        <a-plane position="0.25 0.1 0.02" width="0.46" height="0.15" color="#113041" opacity="0.95"></a-plane>
-        <a-text
-          value="We build AR/VR experiences\nfor marketing, training, and products."
-          color="#ffffff"
-          align="left"
-          width="0.85"
-          position="0.04 0.11 0.03"
-        ></a-text>
+          <a-entity id="portfolio-item1" visible="false">
+            <a-plane color="#193d5c" width="0.76" height="0.42" position="0 0 0.01"></a-plane>
+            <a-text value="AR Product Demo\nImmersive showcase" align="center" color="#ffffff" width="1" position="0 0 0.02"></a-text>
+          </a-entity>
 
-        <a-plane position="0.25 -0.06 0.02" width="0.46" height="0.14" color="#12444c" opacity="0.95"></a-plane>
-        <a-text
-          value="Tap buttons below to:\nOpen website, LinkedIn, email, call"
-          color="#ffffff"
-          align="left"
-          width="0.85"
-          position="0.04 -0.06 0.03"
-        ></a-text>
+          <a-entity id="portfolio-item2" visible="false">
+            <a-plane color="#1a4e4f" width="0.76" height="0.42" position="0 0 0.01"></a-plane>
+            <a-text value="VR Training Module\nPerformance analytics" align="center" color="#ffffff" width="1" position="0 0 0.02"></a-text>
+          </a-entity>
 
-        <a-entity id="buttons" position="0 -0.23 0.03">
-          <a-plane class="clickable" position="-0.33 0 0" width="0.17" height="0.08" color="#00bcd4" link-button="url: https://www.linkedin.com; label: LinkedIn"></a-plane>
-          <a-text value="LinkedIn" align="center" color="#04131a" width="0.5" position="-0.33 0 0.01"></a-text>
+          <a-plane id="portfolio-left-button" class="clickable" visible="false" color="#2d5a7a" width="0.09" height="0.09" position="-0.47 0 0.02"></a-plane>
+          <a-text value="<" align="center" color="#ffffff" width="0.4" position="-0.47 0 0.03"></a-text>
 
-          <a-plane class="clickable" position="-0.11 0 0" width="0.17" height="0.08" color="#64dd17" link-button="url: https://wexr.in; label: Website"></a-plane>
-          <a-text value="Website" align="center" color="#052100" width="0.5" position="-0.11 0 0.01"></a-text>
-
-          <a-plane class="clickable" position="0.11 0 0" width="0.17" height="0.08" color="#ffca28" link-button="url: mailto:hello@wexr.in; label: Email"></a-plane>
-          <a-text value="Email" align="center" color="#2a1c00" width="0.5" position="0.11 0 0.01"></a-text>
-
-          <a-plane class="clickable" position="0.33 0 0" width="0.17" height="0.08" color="#ff7043" link-button="url: tel:+919999999999; label: Call"></a-plane>
-          <a-text value="Call" align="center" color="#3a1206" width="0.5" position="0.33 0 0.01"></a-text>
+          <a-plane id="portfolio-right-button" class="clickable" visible="false" color="#2d5a7a" width="0.09" height="0.09" position="0.47 0 0.02"></a-plane>
+          <a-text value=">" align="center" color="#ffffff" width="0.4" position="0.47 0 0.03"></a-text>
         </a-entity>
+
+        <a-plane id="profile-button" class="clickable" visible="false" color="#00bcd4" position="-0.36 -0.2 0.03" width="0.16" height="0.08"></a-plane>
+        <a-text value="Profile" color="#082530" align="center" width="0.45" position="-0.36 -0.2 0.04"></a-text>
+
+        <a-plane id="web-button" class="clickable" visible="false" color="#64dd17" position="-0.12 -0.2 0.03" width="0.16" height="0.08"></a-plane>
+        <a-text value="Website" color="#0d2a00" align="center" width="0.45" position="-0.12 -0.2 0.04"></a-text>
+
+        <a-plane id="email-button" class="clickable" visible="false" color="#ffca28" position="0.12 -0.2 0.03" width="0.16" height="0.08"></a-plane>
+        <a-text value="Email" color="#2a1c00" align="center" width="0.45" position="0.12 -0.2 0.04"></a-text>
+
+        <a-plane id="location-button" class="clickable" visible="false" color="#ff7043" position="0.36 -0.2 0.03" width="0.16" height="0.08"></a-plane>
+        <a-text value="Location" color="#3a1206" align="center" width="0.45" position="0.36 -0.2 0.04"></a-text>
+
+        <a-gltf-model
+          id="avatar"
+          visible="false"
+          rotation="90 180 0"
+          position="0 -0.07 0.08"
+          scale="0.26 0.26 0.26"
+          src="#avatarModel"
+        ></a-gltf-model>
+
+        <a-plane id="text-bg" class="clickable" visible="false" color="#000000" opacity="0.6" width="0.92" height="0.08" position="0 -0.31 0.02"></a-plane>
+        <a-text id="text" value="" color="#ffffff" align="center" width="1.2" position="0 -0.31 0.03"></a-text>
       </a-entity>
 
       <a-light type="ambient" intensity="1"></a-light>
-      <a-light type="directional" intensity="0.7" position="0 1 1"></a-light>
+      <a-light type="directional" intensity="0.8" position="0 1 1"></a-light>
     </a-scene>
 
     <script>
-      AFRAME.registerComponent("link-button", {
-        schema: {
-          url: { type: "string" },
-          label: { type: "string", default: "Link" }
-        },
-        init: function () {
-          const el = this.el;
-          const data = this.data;
-          const open = () => {
-            if (!data.url) return;
-            window.location.href = data.url;
-          };
-          el.addEventListener("click", open);
-          el.addEventListener("touchstart", open);
-        }
-      });
+      const links = {
+        web: "https://wexr.in",
+        email: "mailto:hello@wexr.in",
+        profile: "https://www.linkedin.com/company/wexr",
+        location: "https://maps.google.com/?q=WEXR"
+      };
 
-      const scene = document.querySelector("#scene");
-      const startBtn = document.querySelector("#startBtn");
-      const startWrap = document.querySelector("#startWrap");
-      const status = document.querySelector("#status");
-      const hint = document.querySelector("#hint");
-      const target = document.querySelector("#cardTarget");
-      const introVideo = document.querySelector("#introVideo");
+      let currentTab = "";
+      let uiBound = false;
+      let started = false;
+      let currentPortfolioItem = 0;
 
-      const showStatus = (message, timeout = 1200) => {
+      const showStatus = (message, timeout = 1400) => {
+        const status = document.querySelector("#status");
         status.textContent = message;
         status.style.display = "block";
         if (timeout > 0) {
@@ -216,6 +262,111 @@
         }
       };
 
+      const setInfoText = (value, tab = "") => {
+        document.querySelector("#text").setAttribute("value", value);
+        document.querySelector("#text-bg").setAttribute("visible", true);
+        currentTab = tab;
+      };
+
+      const bindUi = () => {
+        if (uiBound) return;
+        uiBound = true;
+
+        const profileButton = document.querySelector("#profile-button");
+        const webButton = document.querySelector("#web-button");
+        const emailButton = document.querySelector("#email-button");
+        const locationButton = document.querySelector("#location-button");
+        const textBg = document.querySelector("#text-bg");
+
+        profileButton.addEventListener("click", () => {
+          setInfoText("AR/VR solutions and consultation", "profile");
+        });
+        webButton.addEventListener("click", () => {
+          setInfoText("wexr.in", "web");
+        });
+        emailButton.addEventListener("click", () => {
+          setInfoText("hello@wexr.in", "email");
+        });
+        locationButton.addEventListener("click", () => {
+          setInfoText("India | Global Delivery", "location");
+        });
+
+        textBg.addEventListener("click", () => {
+          if (currentTab && links[currentTab]) {
+            window.location.href = links[currentTab];
+          }
+        });
+
+        const leftBtn = document.querySelector("#portfolio-left-button");
+        const rightBtn = document.querySelector("#portfolio-right-button");
+
+        const showPortfolioItem = (item) => {
+          for (let i = 0; i <= 2; i += 1) {
+            document.querySelector("#portfolio-item" + i).setAttribute("visible", i === item);
+          }
+        };
+
+        leftBtn.addEventListener("click", () => {
+          currentPortfolioItem = (currentPortfolioItem + 1) % 3;
+          showPortfolioItem(currentPortfolioItem);
+        });
+
+        rightBtn.addEventListener("click", () => {
+          currentPortfolioItem = (currentPortfolioItem - 1 + 3) % 3;
+          showPortfolioItem(currentPortfolioItem);
+        });
+      };
+
+      const revealInfoButtons = () => {
+        const ids = ["#profile-button", "#web-button", "#email-button", "#location-button"];
+        ids.forEach((id, idx) => {
+          window.setTimeout(() => {
+            document.querySelector(id).setAttribute("visible", true);
+          }, idx * 180);
+        });
+      };
+
+      const showPortfolio = () => {
+        const panel = document.querySelector("#portfolio-panel");
+        const leftBtn = document.querySelector("#portfolio-left-button");
+        const rightBtn = document.querySelector("#portfolio-right-button");
+
+        panel.setAttribute("visible", true);
+        panel.setAttribute("position", "0 0.02 0.01");
+        leftBtn.setAttribute("visible", true);
+        rightBtn.setAttribute("visible", true);
+      };
+
+      const showAvatar = () => {
+        const avatar = document.querySelector("#avatar");
+        avatar.setAttribute("visible", true);
+      };
+
+      AFRAME.registerComponent("mytarget", {
+        init: function () {
+          this.el.addEventListener("targetFound", async () => {
+            document.querySelector("#hint").textContent = "Target detected. Tap panels to interact.";
+            showAvatar();
+            showPortfolio();
+            revealInfoButtons();
+            setInfoText("Tap a button to view details", "");
+
+            const v = document.querySelector("#portfolio-video");
+            try {
+              await v.play();
+            } catch {
+              // Ignore autoplay restrictions.
+            }
+          });
+
+          this.el.addEventListener("targetLost", () => {
+            document.querySelector("#hint").textContent = "Point camera at the target card";
+            const v = document.querySelector("#portfolio-video");
+            v.pause();
+          });
+        }
+      });
+
       const requestCameraPermission = async () => {
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
           throw new Error("Camera API not supported.");
@@ -224,19 +375,20 @@
           video: { facingMode: { ideal: "environment" } },
           audio: false
         });
-        stream.getTracks().forEach((t) => t.stop());
+        stream.getTracks().forEach((track) => track.stop());
       };
 
-      const waitForCameraFeed = async (timeoutMs = 4000) => {
+      const waitForCameraFeed = async (timeoutMs = 5000) => {
         const start = Date.now();
         while (Date.now() - start < timeoutMs) {
           const videos = Array.from(document.querySelectorAll("video"));
-          const cameraVideo = videos.find((v) => v.id !== "introVideo" && v.srcObject);
+          const cameraVideo = videos.find((v) => v.id !== "portfolio-video" && v.srcObject);
           const hasActiveTrack =
             cameraVideo &&
             cameraVideo.srcObject &&
             cameraVideo.srcObject.getVideoTracks &&
             cameraVideo.srcObject.getVideoTracks().some((t) => t.readyState === "live");
+
           if (
             cameraVideo &&
             hasActiveTrack &&
@@ -246,60 +398,80 @@
           ) {
             return true;
           }
-          await new Promise((resolve) => setTimeout(resolve, 100));
+          await new Promise((resolve) => setTimeout(resolve, 120));
         }
         return false;
       };
 
+      const mountCameraVideoBackground = () => {
+        const videos = Array.from(document.querySelectorAll("video"));
+        const cameraVideo = videos.find((v) => v.id !== "portfolio-video" && v.srcObject);
+        if (!cameraVideo) return false;
+
+        cameraVideo.setAttribute("playsinline", "true");
+        cameraVideo.setAttribute("webkit-playsinline", "true");
+
+        Object.assign(cameraVideo.style, {
+          position: "fixed",
+          inset: "0",
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+          zIndex: "0",
+          pointerEvents: "none",
+          background: "#000"
+        });
+
+        if (cameraVideo.parentElement !== document.body) {
+          document.body.appendChild(cameraVideo);
+        }
+        return true;
+      };
+
+      const scene = document.querySelector("#scene");
+      const startBtn = document.querySelector("#startBtn");
+      const startWrap = document.querySelector("#startWrap");
+
       startBtn.addEventListener("click", async () => {
+        if (started) return;
         try {
           if (!window.isSecureContext) {
-            showStatus("Use HTTPS for mobile camera access.", 1800);
+            showStatus("Use HTTPS or localhost for camera access.", 2200);
             return;
           }
+
           await requestCameraPermission();
           await scene.systems["mindar-image-system"].start();
-          const feedOk = await waitForCameraFeed();
-          if (!feedOk) {
-            showStatus("Camera feed blocked. Allow camera, close other camera apps, then retry.", 3500);
+
+          const ok = await waitForCameraFeed();
+          if (!ok) {
+            showStatus("Camera feed blocked. Close other camera apps and retry.", 3200);
             return;
           }
+
+          mountCameraVideoBackground();
+          bindUi();
+          started = true;
           startWrap.style.display = "none";
-          showStatus("AR started. Scan the target card.");
+          showStatus("AR started. Scan your business card.");
         } catch (err) {
           const name = err && err.name ? err.name : "UnknownError";
           if (name === "NotAllowedError") {
-            showStatus("Camera denied. Allow camera in browser site settings.", 3000);
+            showStatus("Camera denied. Allow camera in browser site settings.", 3200);
           } else if (name === "NotReadableError") {
             showStatus("Camera busy in another app. Close Zoom/Meet/Snapchat and retry.", 3500);
-          } else if (name === "NotFoundError") {
-            showStatus("No camera device found.", 2500);
           } else {
-            showStatus(`Camera start failed: ${name}`, 3000);
+            showStatus("AR start failed: " + name, 3000);
           }
         }
       });
 
-      scene.addEventListener("arError", () => {
-        showStatus("AR engine error. Check targets.mind and camera permission.", 3500);
-      });
-
       scene.addEventListener("arReady", () => {
-        showStatus("AR engine ready.", 1200);
+        showStatus("AR engine ready", 900);
       });
 
-      target.addEventListener("targetFound", async () => {
-        hint.textContent = "Target detected. Tap buttons to interact.";
-        try {
-          await introVideo.play();
-        } catch {
-          // Ignore autoplay errors on strict browsers.
-        }
-      });
-
-      target.addEventListener("targetLost", () => {
-        hint.textContent = "Point camera at the business card target";
-        introVideo.pause();
+      scene.addEventListener("arError", () => {
+        showStatus("AR engine error. Check targets.mind and camera permission.", 3200);
       });
     </script>
   </body>
