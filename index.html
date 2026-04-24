@@ -220,7 +220,10 @@
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
           throw new Error("Camera API not supported.");
         }
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: "environment" } },
+          audio: false
+        });
         stream.getTracks().forEach((t) => t.stop());
       };
 
@@ -251,9 +254,26 @@
           }
           startWrap.style.display = "none";
           showStatus("AR started. Scan the target card.");
-        } catch {
-          showStatus("Camera start failed. Allow camera permission.", 2000);
+        } catch (err) {
+          const name = err && err.name ? err.name : "UnknownError";
+          if (name === "NotAllowedError") {
+            showStatus("Camera denied. Allow camera in browser site settings.", 3000);
+          } else if (name === "NotReadableError") {
+            showStatus("Camera busy in another app. Close Zoom/Meet/Snapchat and retry.", 3500);
+          } else if (name === "NotFoundError") {
+            showStatus("No camera device found.", 2500);
+          } else {
+            showStatus(`Camera start failed: ${name}`, 3000);
+          }
         }
+      });
+
+      scene.addEventListener("arError", () => {
+        showStatus("AR engine error. Check targets.mind and camera permission.", 3500);
+      });
+
+      scene.addEventListener("arReady", () => {
+        showStatus("AR engine ready.", 1200);
       });
 
       target.addEventListener("targetFound", async () => {
