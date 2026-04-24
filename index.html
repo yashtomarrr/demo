@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>WEXR AR Viewer</title>
+    <title>WEXR Interactive AR Business Card</title>
     <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
     <style>
@@ -13,39 +13,14 @@
         width: 100%;
         height: 100%;
         overflow: hidden;
-        font-family: sans-serif;
+        font-family: Arial, Helvetica, sans-serif;
+        background: #000;
       }
 
-      .hint {
+      .overlay {
         position: fixed;
-        z-index: 10;
-        left: 50%;
-        bottom: 16px;
-        transform: translateX(-50%);
-        padding: 8px 12px;
-        border-radius: 8px;
-        background: rgba(0, 0, 0, 0.6);
-        color: #fff;
-        font-size: 14px;
-      }
-
-      .brand {
-        position: fixed;
-        z-index: 15;
-        top: 12px;
-        right: 12px;
-        padding: 6px 10px;
-        border-radius: 8px;
-        background: rgba(0, 0, 0, 0.5);
-        color: #9fe8ff;
-        font-size: 12px;
-        font-weight: 700;
-      }
-
-      .start-wrap {
-        position: fixed;
-        z-index: 20;
         inset: 0;
+        z-index: 20;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -55,75 +30,183 @@
       .start-btn {
         border: 0;
         border-radius: 12px;
-        padding: 14px 20px;
+        padding: 14px 22px;
         font-size: 16px;
-        font-weight: 600;
+        font-weight: 700;
         cursor: pointer;
+        background: #00bcd4;
+        color: #04131a;
+      }
+
+      .brand {
+        position: fixed;
+        top: 12px;
+        right: 12px;
+        z-index: 25;
+        color: #9fe8ff;
+        background: rgba(0, 0, 0, 0.45);
+        border-radius: 8px;
+        padding: 6px 10px;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .hint {
+        position: fixed;
+        left: 50%;
+        bottom: 14px;
+        transform: translateX(-50%);
+        z-index: 25;
+        color: #fff;
+        background: rgba(0, 0, 0, 0.6);
+        border-radius: 8px;
+        padding: 8px 12px;
+        font-size: 13px;
       }
 
       .status {
         position: fixed;
-        z-index: 25;
-        top: 14px;
         left: 50%;
+        top: 14px;
         transform: translateX(-50%);
-        padding: 8px 12px;
-        border-radius: 8px;
-        background: rgba(180, 0, 0, 0.85);
+        z-index: 25;
         color: #fff;
+        background: rgba(0, 0, 0, 0.7);
+        border-radius: 8px;
+        padding: 8px 12px;
         font-size: 13px;
         display: none;
       }
     </style>
   </head>
   <body>
-    <div id="status" class="status"></div>
     <div class="brand">Made by WEXR</div>
+    <div id="status" class="status"></div>
+    <div id="hint" class="hint">Point camera at the business card target</div>
 
-    <div id="startWrap" class="start-wrap">
-      <button id="startBtn" class="start-btn">Start AR Camera</button>
+    <div id="startWrap" class="overlay">
+      <button id="startBtn" class="start-btn">Start AR Business Card</button>
     </div>
-
-    <div class="hint">Point your camera at the target image</div>
 
     <a-scene
       id="scene"
-     mindar-image="imageTargetSrc: ./targets.mind?v=6; autoStart: false; uiLoading: yes; uiError: yes; uiScanning: yes; filterMinCF: 0.001; filterBeta: 0.01; warmupTolerance: 8; missTolerance: 8;"
+      mindar-image="imageTargetSrc: ./targets.mind?v=7; autoStart: false; uiLoading: yes; uiError: yes; uiScanning: yes; filterMinCF: 0.001; filterBeta: 0.01; warmupTolerance: 8; missTolerance: 8;"
       color-space="sRGB"
       renderer="colorManagement: true, physicallyCorrectLights"
       vr-mode-ui="enabled: false"
       device-orientation-permission-ui="enabled: false"
     >
-      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+      <a-assets>
+        <video
+          id="introVideo"
+          src="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4"
+          preload="auto"
+          loop
+          muted
+          playsinline
+          webkit-playsinline
+          crossorigin="anonymous"
+        ></video>
+      </a-assets>
 
-      <a-entity id="targetEntity" mindar-image-target="targetIndex: 0">
-        <a-entity id="modelAnchor" position="0 0 0.02" rotation="0 0 0">
-          <a-entity
-            id="avatar"
-            gltf-model="url(./model.glb)"
-            position="0 0 0.12"
-             rotation="0 0 0"
-            scale="0.35 0.35 0.35"
-            visible="false"
-          ></a-entity>
+      <a-camera
+        position="0 0 0"
+        look-controls="enabled: false"
+        cursor="rayOrigin: mouse; fuse: false"
+        raycaster="objects: .clickable"
+      ></a-camera>
+
+      <a-entity id="cardTarget" mindar-image-target="targetIndex: 0">
+        <a-plane position="0 0 0" width="1.05" height="0.62" color="#0b1a22" opacity="0.92"></a-plane>
+
+        <a-text
+          value="WEXR IMMERSIVE PVT. LTD"
+          color="#9fe8ff"
+          align="center"
+          width="1.6"
+          position="0 0.26 0.01"
+        ></a-text>
+
+        <a-text
+          value="Interactive AR Business Card"
+          color="#d7f8ff"
+          align="center"
+          width="1.5"
+          position="0 0.21 0.01"
+        ></a-text>
+
+        <a-plane
+          id="videoPanel"
+          position="-0.24 0.02 0.02"
+          width="0.48"
+          height="0.28"
+          material="shader: flat; src: #introVideo"
+        ></a-plane>
+
+        <a-plane position="0.25 0.1 0.02" width="0.46" height="0.15" color="#113041" opacity="0.95"></a-plane>
+        <a-text
+          value="We build AR/VR experiences\nfor marketing, training, and products."
+          color="#ffffff"
+          align="left"
+          width="0.85"
+          position="0.04 0.11 0.03"
+        ></a-text>
+
+        <a-plane position="0.25 -0.06 0.02" width="0.46" height="0.14" color="#12444c" opacity="0.95"></a-plane>
+        <a-text
+          value="Tap buttons below to:\nOpen website, LinkedIn, email, call"
+          color="#ffffff"
+          align="left"
+          width="0.85"
+          position="0.04 -0.06 0.03"
+        ></a-text>
+
+        <a-entity id="buttons" position="0 -0.23 0.03">
+          <a-plane class="clickable" position="-0.33 0 0" width="0.17" height="0.08" color="#00bcd4" link-button="url: https://www.linkedin.com; label: LinkedIn"></a-plane>
+          <a-text value="LinkedIn" align="center" color="#04131a" width="0.5" position="-0.33 0 0.01"></a-text>
+
+          <a-plane class="clickable" position="-0.11 0 0" width="0.17" height="0.08" color="#64dd17" link-button="url: https://wexr.in; label: Website"></a-plane>
+          <a-text value="Website" align="center" color="#052100" width="0.5" position="-0.11 0 0.01"></a-text>
+
+          <a-plane class="clickable" position="0.11 0 0" width="0.17" height="0.08" color="#ffca28" link-button="url: mailto:hello@wexr.in; label: Email"></a-plane>
+          <a-text value="Email" align="center" color="#2a1c00" width="0.5" position="0.11 0 0.01"></a-text>
+
+          <a-plane class="clickable" position="0.33 0 0" width="0.17" height="0.08" color="#ff7043" link-button="url: tel:+919999999999; label: Call"></a-plane>
+          <a-text value="Call" align="center" color="#3a1206" width="0.5" position="0.33 0 0.01"></a-text>
         </a-entity>
       </a-entity>
 
       <a-light type="ambient" intensity="1"></a-light>
-      <a-light type="directional" intensity="0.8" position="0 1 1"></a-light>
+      <a-light type="directional" intensity="0.7" position="0 1 1"></a-light>
     </a-scene>
 
     <script>
+      AFRAME.registerComponent("link-button", {
+        schema: {
+          url: { type: "string" },
+          label: { type: "string", default: "Link" }
+        },
+        init: function () {
+          const el = this.el;
+          const data = this.data;
+          const open = () => {
+            if (!data.url) return;
+            window.location.href = data.url;
+          };
+          el.addEventListener("click", open);
+          el.addEventListener("touchstart", open);
+        }
+      });
+
       const scene = document.querySelector("#scene");
       const startBtn = document.querySelector("#startBtn");
       const startWrap = document.querySelector("#startWrap");
       const status = document.querySelector("#status");
-      const target = document.querySelector("#targetEntity");
-      const avatar = document.querySelector("#avatar");
-      const ua = navigator.userAgent || "";
-      const modelUrl = `./model.glb?v=${Date.now()}`;
+      const hint = document.querySelector("#hint");
+      const target = document.querySelector("#cardTarget");
+      const introVideo = document.querySelector("#introVideo");
 
-      const showStatus = (message, timeout = 0) => {
+      const showStatus = (message, timeout = 1200) => {
         status.textContent = message;
         status.style.display = "block";
         if (timeout > 0) {
@@ -133,103 +216,58 @@
         }
       };
 
-      const hideStatus = () => {
-        status.style.display = "none";
-      };
-
-      const patchVideoForIOS = () => {
-        const video = document.querySelector("video");
-        if (!video) return;
-        video.setAttribute("playsinline", "true");
-        video.setAttribute("webkit-playsinline", "true");
-        video.muted = true;
-      };
-
       const requestCameraPermission = async () => {
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          throw new Error("Camera API not supported in this browser.");
+          throw new Error("Camera API not supported.");
         }
-        let stream;
-        try {
-          stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: { ideal: "environment" } },
-            audio: false
-          });
-        } catch {
-          stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        stream.getTracks().forEach((t) => t.stop());
+      };
+
+      const waitForCameraFeed = async (timeoutMs = 4000) => {
+        const start = Date.now();
+        while (Date.now() - start < timeoutMs) {
+          const video = document.querySelector("video");
+          if (video && video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0) {
+            return true;
+          }
+          await new Promise((resolve) => setTimeout(resolve, 100));
         }
-        stream.getTracks().forEach((track) => track.stop());
+        return false;
       };
-
-      const isInAppBrowser = () => /WhatsApp|FBAN|FBAV|Instagram|Line|wv/i.test(ua);
-
-      const forceOpaqueMaterials = () => {
-        const meshRoot = avatar.getObject3D("mesh");
-        if (!meshRoot) return;
-        meshRoot.traverse((node) => {
-          if (!node.isMesh || !node.material) return;
-          const materials = Array.isArray(node.material) ? node.material : [node.material];
-          materials.forEach((mat) => {
-            mat.transparent = false;
-            mat.opacity = 1;
-            mat.depthWrite = true;
-            mat.depthTest = false;
-            mat.alphaTest = 0;
-            mat.needsUpdate = true;
-          });
-          node.frustumCulled = false;
-        });
-      };
-
-      const applyStableModelTransform = () => {
-        avatar.setAttribute("position", "0 0 0.12");
-          avatar.setAttribute("rotation", "0 0 0");
-        avatar.setAttribute("scale", "0.35 0.35 0.35");
-        avatar.object3D.visible = true;
-      };
-
-      avatar.setAttribute("gltf-model", `url(${modelUrl})`);
 
       startBtn.addEventListener("click", async () => {
         try {
           if (!window.isSecureContext) {
-            showStatus("Mobile camera requires HTTPS (or localhost).");
+            showStatus("Use HTTPS for mobile camera access.", 1800);
             return;
           }
-          if (isInAppBrowser()) {
-            showStatus("Open this link in Safari/Chrome. In-app browsers may block camera.");
-            return;
-          }
-
           await requestCameraPermission();
           await scene.systems["mindar-image-system"].start();
-          patchVideoForIOS();
-
+          const feedOk = await waitForCameraFeed();
+          if (!feedOk) {
+            showStatus("Camera feed blocked. Allow camera, close other camera apps, then retry.", 3500);
+            return;
+          }
           startWrap.style.display = "none";
-          showStatus("Camera started. Scan the target image.", 1400);
+          showStatus("AR started. Scan the target card.");
         } catch {
-          showStatus("Camera start failed. Allow camera permission and retry.");
+          showStatus("Camera start failed. Allow camera permission.", 2000);
         }
       });
 
-      target.addEventListener("targetFound", () => {
-        avatar.setAttribute("visible", "true");
-        applyStableModelTransform();
+      target.addEventListener("targetFound", async () => {
+        hint.textContent = "Target detected. Tap buttons to interact.";
+        try {
+          await introVideo.play();
+        } catch {
+          // Ignore autoplay errors on strict browsers.
+        }
       });
 
       target.addEventListener("targetLost", () => {
-        avatar.setAttribute("visible", "false");
-      });
-
-      avatar.addEventListener("model-loaded", () => {
-        forceOpaqueMaterials();
-        applyStableModelTransform();
-        hideStatus();
-      });
-
-      avatar.addEventListener("model-error", () => {
-        avatar.setAttribute("visible", "false");
-        showStatus("Model failed to load. Verify /model.glb is accessible.");
+        hint.textContent = "Point camera at the business card target";
+        introVideo.pause();
       });
     </script>
   </body>
